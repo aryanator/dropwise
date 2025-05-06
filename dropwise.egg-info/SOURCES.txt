@@ -8,4 +8,9 @@ dropwise.egg-info/SOURCES.txt
 dropwise.egg-info/dependency_links.txt
 dropwise.egg-info/requires.txt
 dropwise.egg-info/top_level.txt
+dropwise/tasks/__init__.py
+dropwise/tasks/question_answering.py
+dropwise/tasks/regression.py
+dropwise/tasks/sequence_classification.py
+dropwise/tasks/token_classification.py
 tests/test.py

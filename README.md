@@ -6,84 +6,141 @@
 
 ## 🚀 Features
 
-- ✅ Enable dropout during inference for **Bayesian-like uncertainty** estimation
-- ✅ Compute **predictive entropy**, **confidence**, and **per-class standard deviation**
-- ✅ Works seamlessly with **Hugging Face Transformers** and **PyTorch**
-- ✅ Supports **batch inference**, **CPU/GPU**, and customizable `num_passes`
+- ✅ Enable dropout during inference for **Bayesian-like uncertainty** estimation  
+- ✅ Compute **predictive entropy**, **confidence**, and **per-class standard deviation**  
+- ✅ Modular support for **classification, QA, token tagging, and regression**  
+- ✅ Works seamlessly with **Hugging Face Transformers** and **PyTorch**  
+- ✅ Supports **batch inference**, **CPU/GPU**, and customizable `num_passes`  
 - ✅ Cleanly packaged and extensible for research or production
 
 ---
 
-## 🤖 Supported Models
+## 🤖 Supported Tasks
 
-Dropwise works with any `AutoModelForSequenceClassification` compatible model including:
+| Task Type               | Example Model                                 |
+|------------------------|------------------------------------------------|
+| `sequence-classification` | `distilbert-base-uncased-finetuned-sst-2-english`  
+| `token-classification`    | `dslim/bert-base-NER`  
+| `question-answering`      | `deepset/bert-base-cased-squad2`  
+| `regression`              | `roberta-base` (with custom regression head)
 
-- `bert-base-uncased`, `bert-large-uncased`
-- `roberta-base`, `roberta-large`
-- `deberta-v3-base`, `deberta-v2-xlarge`
-- `albert-base-v2`, `distilbert-base-uncased`
-- Any custom fine-tuned Hugging Face model for classification
-
-> ⚠️ Note: The model must contain dropout layers (most pretrained transformers do).
+> ⚠️ Your model must contain dropout layers for MC sampling to work (most HF models do).
 
 ---
 
 ## 📦 Installation
 
 ```bash
-pip install dropwise  # coming soon to PyPI
+pip install dropwise
 ```
 
-Or install locally for development:
+Or install from source:
 
 ```bash
-git clone https://github.com/aryanator/dropwise.git
+git clone https://github.com/aryanator01/dropwise.git
 cd dropwise
 pip install -e .
 ```
 
 ---
 
-## 🧠 Example Usage
+## 🧠 Example Usage (Per Task)
+
+### 📘 Sequence Classification
 
 ```python
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from dropwise import DropwisePredictor
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from dropwise.predictor import DropwisePredictor
 
-model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
 
-predictor = DropwisePredictor(model, tokenizer, num_passes=30)
-result = predictor.predict("The performance was unexpectedly good!")
+predictor = DropwisePredictor(model, tokenizer, task_type="sequence-classification", num_passes=20)
+results = predictor(["The movie was fantastic!"])
 
-print("Predicted class:", result['predicted_class'].item())
-print("Entropy:", result['entropy'].item())
-print("Confidence:", result['probs'].max().item())
-print("Per-class std dev:", result['std_dev'])
+print(results[0])
 ```
 
 ---
 
-## 📊 Output Dictionary
+### 🏷️ Token Classification (NER)
 
-- `predicted_class`: index of most probable class
-- `entropy`: predictive entropy (higher = less confident)
-- `std_dev`: standard deviation across MC passes for each class
-- `mean_logits`: average logits before softmax
-- `probs`: softmax probabilities
+```python
+from transformers import AutoModelForTokenClassification, AutoTokenizer
+from dropwise.predictor import DropwisePredictor
+
+model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+
+predictor = DropwisePredictor(model, tokenizer, task_type="token-classification", num_passes=15)
+results = predictor(["Hugging Face is based in New York City."])
+
+print(results[0]['token_predictions'])
+```
 
 ---
 
-## 🧠 Why Dropwise?
+### ❓ Question Answering
 
-> Unlike deterministic predictions, Dropwise estimates uncertainty via stochastic forward passes — enabling confidence-aware applications.
+```python
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+from dropwise.predictor import DropwisePredictor
 
-**Use cases include:**
+model = AutoModelForQuestionAnswering.from_pretrained("deepset/bert-base-cased-squad2")
+tokenizer = AutoTokenizer.from_pretrained("deepset/bert-base-cased-squad2")
 
-- Filtering low-confidence predictions
-- Active learning and semi-supervised setups
-- Detecting ambiguous, adversarial, or out-of-distribution inputs
-- Enhancing interpretability and robustness in real-world deployment
+question = "Where is Hugging Face based?"
+context = "Hugging Face Inc. is a company based in New York City."
+qa_input = f"{question} [SEP] {context}"
+
+predictor = DropwisePredictor(model, tokenizer, task_type="question-answering", num_passes=10)
+results = predictor([qa_input])
+
+print(results[0]['answer'])
+```
+
+---
+
+### 📈 Regression
+
+```python
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from dropwise.predictor import DropwisePredictor
+
+model = AutoModelForSequenceClassification.from_pretrained("roberta-base", num_labels=1)
+tokenizer = AutoTokenizer.from_pretrained("roberta-base")
+
+predictor = DropwisePredictor(model, tokenizer, task_type="regression", num_passes=20)
+results = predictor(["The child is very young."])
+
+print(results[0]['predicted_score'], "+/-", results[0]['uncertainty'])
+```
+
+---
+
+## 📊 Output Dictionary (per sample)
+
+| Field               | Description                                      |
+|--------------------|--------------------------------------------------|
+| `predicted_class`  | Index of most probable class (classification)    |
+| `predicted_score`  | Scalar prediction (regression only)              |
+| `confidence`       | Highest softmax probability                      |
+| `entropy`          | Predictive entropy (higher = less confident)     |
+| `std_dev`          | Standard deviation across MC passes              |
+| `probs`            | Class-wise softmax probabilities                 |
+| `margin`           | Confidence gap between top-2 predictions         |
+| `answer`           | Predicted answer span (QA only)                  |
+| `token_predictions`| List of per-token dicts (token classification)   |
+
+---
+
+## 🧪 Run Tests
+
+```bash
+python tests/test_predictor.py
+```
+
+Covers all task types with preloaded models.
 
 ---
 
@@ -91,23 +148,15 @@ print("Per-class std dev:", result['std_dev'])
 
 ```
 dropwise/
-├── dropwise/
+├── predictor.py
+├── tasks/
 │   ├── __init__.py
-│   └── predictor.py
-├── tests/
-│   ├── __init__.py
-│   └── test_predictor.py
-├── setup.py
-├── README.md
-├── LICENSE
-```
-
----
-
-## 🧪 Running Tests
-
-```bash
-python tests/test_predictor.py
+│   ├── sequence_classification.py
+│   ├── token_classification.py
+│   ├── question_answering.py
+│   └── regression.py
+tests/
+└── test_predictor.py
 ```
 
 ---
@@ -118,4 +167,4 @@ MIT License
 
 ---
 
-Made with ❤️ for uncertainty-aware, explainable AI. [Coming soon to PyPI.]
+Built with ❤️ for robust, explainable, uncertainty-aware AI systems.

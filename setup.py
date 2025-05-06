@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="dropwise",
-    version="0.1.0",
+    version="0.2.1",
     author="Aryan Patil",
     author_email="aryanator01@gmail.com",
     description="Monte Carlo Dropout-based uncertainty estimation for Transformers",
