@@ -37,7 +37,7 @@ pip install dropwise  # coming soon to PyPI
 Or install locally for development:
 
 ```bash
-git clone https://github.com/yourusername/dropwise.git
+git clone https://github.com/aryanator/dropwise.git
 cd dropwise
 pip install -e .
 ```
