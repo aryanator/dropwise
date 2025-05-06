@@ -1,0 +1,11 @@
+LICENCE
+README.md
+setup.py
+dropwise/__init__.py
+dropwise/predictor.py
+dropwise.egg-info/PKG-INFO
+dropwise.egg-info/SOURCES.txt
+dropwise.egg-info/dependency_links.txt
+dropwise.egg-info/requires.txt
+dropwise.egg-info/top_level.txt
+tests/test.py
