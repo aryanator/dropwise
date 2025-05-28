@@ -1,6 +1,6 @@
 # Dropwise
 
-**Dropwise** is a lightweight PyTorch/HuggingFace wrapper for performing Monte Carlo Dropout–based uncertainty estimation in Transformers. It enables confidence-aware decision making by revealing how certain a model is about its predictions — all with just a few lines of code.
+**Dropwise[https://pypi.org/project/dropwise/]** is a lightweight PyTorch/HuggingFace wrapper for performing Monte Carlo Dropout–based uncertainty estimation in Transformers. It enables confidence-aware decision making by revealing how certain a model is about its predictions — all with just a few lines of code.
 
 ---
 
